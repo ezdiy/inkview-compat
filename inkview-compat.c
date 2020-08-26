@@ -7,7 +7,6 @@
 static ucontext_t inner, outer;
 static char stack[128 * 1024];
 static iv_handler handler;
-static int exiting;
 static iv_mtinfo *gtcache;
 static int abc[3];
 
@@ -29,7 +28,6 @@ static int inner_handler(int a, int b, int c) {
 }
 
 COMPAT void PrepareForLoop(iv_handler h) {
-    exiting = 0;
     handler = h;
     getcontext(&inner);
     inner.uc_stack.ss_sp = stack;
