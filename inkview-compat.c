@@ -23,7 +23,7 @@ static int inner_handler(int a, int b, int c) {
     abc[0] = a;
     abc[1] = b;
     abc[2] = c;
-    if (!exiting)
+    if (a != EVT_EXIT)
         swapcontext(&inner, &outer);
     return 0;
 }
@@ -45,7 +45,6 @@ COMPAT void ProcessEventLoop() {
 }
 
 COMPAT void ClearOnExit() {
-    exiting = 1;
     abc[0] = -1;
     ClearTimer(inner_timer);
     LeaveInkViewMain();
