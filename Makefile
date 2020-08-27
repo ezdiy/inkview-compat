@@ -3,7 +3,7 @@ CC = $(CROSS)-gcc
 CFLAGS = -Wall -O2
 
 libinkview-compat.so: inkview-compat.c
-	$(CC) $(CFLAGS) -shared -linkview -fPIC -s $< -o $@
+	$(CC) $(CFLAGS) -shared -lpthread -linkview -fPIC -s $< -o $@
 
 clean:
 	rm -f *.so
