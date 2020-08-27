@@ -1,12 +1,9 @@
 CROSS ?= arm-obreey-linux-gnueabi
 CC = $(CROSS)-gcc
-CFLAGS = -Wall -DDEBUG=1
-
-test: test.c libinkview-compat.so
-	$(CC) $(CFLAGS) -linkview -linkview-compat -L. $< -o $@
+CFLAGS = -Wall -O2
 
 libinkview-compat.so: inkview-compat.c
-	$(CC) $(CFLAGS) -shared -lpthread -linkview -s -fPIC $< -o $@
+	$(CC) $(CFLAGS) -shared -linkview -fPIC -s $< -o $@
 
 clean:
-	rm -f test *.so
+	rm -f *.so
