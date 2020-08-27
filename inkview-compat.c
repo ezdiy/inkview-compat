@@ -1,53 +1,69 @@
-#include <ucontext.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include "inkview.h"
+#include "debug.h"
 
+#define COMPAT __attribute__((weak))
 #define TICK_MS 20
 
-static ucontext_t inner, outer;
-static char stack[128 * 1024];
+static int abc[3];
+static pthread_t ivm_thread;
+static sem_t sem_notify, sem_poll;
 static iv_handler handler;
 static iv_mtinfo *gtcache;
-static int abc[3];
+static int exiting;
 
-static void inner_timer() {
-    SetWeakTimer("compat-poll", inner_timer, TICK_MS); // re-arm
+static void poll_timer() {
+    SetWeakTimer("compat-poll", poll_timer, TICK_MS); // re-arm
     abc[0] = -1; // signals expiry
-    swapcontext(&inner, &outer);
+    sem_post(&sem_notify);
+    sem_wait(&sem_poll);
 }
 
-static int inner_handler(int a, int b, int c) {
-    if (a == EVT_INIT)
-        SetWeakTimer("compat-poll", inner_timer, TICK_MS);
+static int ivm_proc(int a, int b, int c) {
+    if (a == EVT_INIT) {
+        SetWeakTimer("compat-poll", poll_timer, TICK_MS);
+        sem_wait(&sem_poll);
+    }
     abc[0] = a;
     abc[1] = b;
     abc[2] = c;
-    if (a != EVT_EXIT)
-        swapcontext(&inner, &outer);
+    if (a == EVT_EXIT) {
+        exiting = 1;
+    } else if (exiting) return 2;
+    sem_post(&sem_notify);
+    sem_wait(&sem_poll);
     return 0;
 }
 
-void PrepareForLoop(iv_handler h) {
+COMPAT void PrepareForLoop(iv_handler h) {
     handler = h;
-    getcontext(&inner);
-    inner.uc_stack.ss_sp = stack;
-    inner.uc_stack.ss_size = sizeof(stack);
-    inner.uc_link = &outer;
-    makecontext(&inner, (void (*)(void)) &InkViewMain, 1, inner_handler);
+    sem_init(&sem_notify, 0, 0);;
+    sem_init(&sem_poll, 0, 0);;
+    pthread_create(&ivm_thread, NULL, (void *)&InkViewMain, ivm_proc);
 }
 
-void ProcessEventLoop() {
-    swapcontext(&outer, &inner);
+COMPAT void ProcessEventLoop() {
+    sem_post(&sem_poll);
+    sem_wait(&sem_notify);
     if (abc[0] != -1)
         handler(abc[0], abc[1], abc[2]);
 }
 
-void ClearOnExit() {
-    abc[0] = -1;
-    ClearTimer(inner_timer);
-    LeaveInkViewMain();
+COMPAT void ClearOnExit() {
+    ClearTimer(poll_timer);
+    if (!exiting) {
+        LeaveInkViewMain();
+        exiting = 1;
+    }
+    sem_post(&sem_poll);
+    sem_post(&sem_poll);
+    pthread_join(ivm_thread, NULL); // until it escapes IVM
+    sem_destroy(&sem_notify);
+    sem_destroy(&sem_poll);
 }
 
-iv_mtinfo *GetTouchInfoI(unsigned int i) {
+COMPAT iv_mtinfo *GetTouchInfoI(unsigned int i) {
     if (!i) gtcache = GetTouchInfo();
     return gtcache + i;
 }
