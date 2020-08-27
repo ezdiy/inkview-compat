@@ -1,7 +1,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "inkview.h"
-#include "debug.h"
 
 #define COMPAT __attribute__((weak))
 #define TICK_MS 20
