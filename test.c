@@ -2,6 +2,7 @@
 #include <time.h>
 
 #include "inkview.h"
+#include "debug.h"
 
 int killme, isold;
 
@@ -15,8 +16,10 @@ int test(int typ, int par1, int par2)
         if (isold) 
             LeaveInkViewMain();
     }
-    if (typ == EVT_EXIT)
+    if (typ == EVT_EXIT) {
+        printf("got exit, killme\n");
         killme = 1;
+    }
     return 0;
 }
 
@@ -27,7 +30,7 @@ int main(int argc, char **argv)
         printf("using InkViewMain()\n");
         isold = 1;
         InkViewMain(test);
-        return;
+        return 0;
     }
     printf("using poll mode\n");
     PrepareForLoop(&test);
@@ -37,8 +40,11 @@ int main(int argc, char **argv)
         // 5 * 50Hz
         tick++;
         if ((tick % (50 * 5)) == 0)
-            printf("5 sec tick, t=%d\n", time(NULL));
+            printf("5 sec tick, t=%d\n", (int)time(NULL));
     }
     ClearOnExit();
+    return 0;
 }
+
+
 
